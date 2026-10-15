@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corrigé - La grande cueillette des pommes</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel pour compiler JSX dans le navigateur -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Canvas Confetti pour l'animation de célébration finale -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- Configuration Tailwind personnalisée -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'apple-red': '#ef4444',
+                        'apple-dark': '#b91c1c',
+                        'leaf-green': '#22c55e',
+                        'wood-brown': '#78350f',
+                        'wood-light': '#fef3c7'
+                    },
+                    fontFamily: {
+                        sans: ['"Nunito"', '"Inter"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Styles CSS personnalisés pour les animations -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f0fdf4;
+            background-image: radial-gradient(#dcfce7 20%, transparent 20%);
+            background-position: 0 0, 25px 25px;
+            background-size: 50px 50px;
+        }
+
+        /* Animations de jeu vidéo / interactives */
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.8) translateY(20px); }
+            70% { transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-pop {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-float {
+            animation: bounce-slow 3s infinite ease-in-out;
+        }
+
+        .title-shadow {
+            text-shadow: 4px 4px 0px #b91c1c;
+        }
+        
+        .box-shadow-custom {
+            box-shadow: 6px 6px 0px rgba(120, 53, 15, 0.2);
+        }
+
+        /* Personnalisation de la barre de défilement pour le TBI */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fef3c7; 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #22c55e; 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #16a34a; 
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased min-h-screen">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- COMPOSANTS VISUELS SVG ---
+
+        const ColumnMath = ({ operationId }) => {
+            const [step, setStep] = useState(0);
+            
+            let config = {};
+            
+            // 1. L'addition avec retenues (125 + 123 + 102)
+            if (operationId === "add_eleves") {
+                config = {
+                    title: "L'addition en colonnes avec retenues",
+                    maxSteps: 3,
+                    width: 400,
+                    height: 280,
+                    headers: [
+                        { label: "C", color: "#1e40af", x: 100 },
+                        { label: "D", color: "#166534", x: 200 },
+                        { label: "U", color: "#9a3412", x: 300 }
+                    ],
+                    lines: [
+                        { y: 70 }, // Ligne des retenues
+                        { y: 110, vals: [{v:'1', x:100}, {v:'2', x:200}, {v:'5', x:300}] },
+                        { y: 150, sign: '+', vals: [{v:'1', x:100}, {v:'2', x:200}, {v:'3', x:300}] },
+                        { y: 190, sign: '+', vals: [{v:'1', x:100}, {v:'0', x:200}, {v:'2', x:300}] },
+                    ],
+                    resultY: 240,
+                    renderDynamic: (step) => {
+                        return (
+                            <g>
+                                {/* Surlignement des colonnes en jaune */}
+                                {step >= 1 && <rect x="250" y="80" width="100" height="170" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                                {step >= 2 && <rect x="150" y="80" width="100" height="170" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                                {step >= 3 && <rect x="50" y="80" width="100" height="170" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                                
+                                {/* Apparition de la retenue au-dessus des dizaines */}
+                                {step >= 1 && <text x="200" y="70" textAnchor="middle" fill="#ef4444" fontSize="22" fontWeight="bold" className="animate-pop">1</text>}
+                                
+                                {/* Apparition du résultat bas */}
+                                {step >= 1 && <text x="300" y="240" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">0</text>}
+                                {step >= 2 && <text x="200" y="240" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">5</text>}
+                                {step >= 3 && <text x="100" y="240" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">3</text>}
+                            </g>
+                        )
+                    },
+                    explanations: [
+                        "On place les nombres en alignant les unités, dizaines et centaines.",
+                        "Unités : 5 + 3 + 2 = 10. J'écris 0 et je place la retenue de 1 aux dizaines.",
+                        "Dizaines : 1 (retenue) + 2 + 2 + 0 = 5. J'écris 5.",
+                        "Centaines : 1 + 1 + 1 = 3. Le total est 350 !"
+                    ]
+                };
+            }
+            // 2A. Multiplication Repas B (350 x 4)
+            else if (operationId === "mult_repas_b") {
+                config = {
+                    title: "Coût Repas B (350 x 4$)",
+                    maxSteps: 3,
+                    width: 450,
+                    height: 280,
+                    headers: [
+                        { label: "UM", color: "#6b21a8", x: 90 },
+                        { label: "C", color: "#1e40af", x: 170 },
+                        { label: "D", color: "#166534", x: 250 },
+                        { label: "U", color: "#9a3412", x: 330 }
+                    ],
+                    lines: [
+                        { y: 70 },
+                        { y: 120, vals: [{v:'3', x:170}, {v:'5', x:250}, {v:'0', x:330}] },
+                        { y: 170, sign: 'x', vals: [{v:'4', x:330}] },
+                    ],
+                    resultY: 230,
+                    renderDynamic: (step) => (
+                        <g>
+                            {step >= 1 && <rect x="290" y="80" width="80" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            {step >= 2 && <rect x="210" y="80" width="80" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            {step >= 3 && <rect x="130" y="80" width="80" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            
+                            {step >= 2 && <text x="170" y="70" textAnchor="middle" fill="#ef4444" fontSize="22" fontWeight="bold" className="animate-pop">2</text>}
+                            
+                            {step >= 1 && <text x="330" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">0</text>}
+                            {step >= 2 && <text x="250" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">0</text>}
+                            {step >= 3 && (
+                                <>
+                                    <text x="170" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">4</text>
+                                    <text x="90" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">1</text>
+                                </>
+                            )}
+                        </g>
+                    ),
+                    explanations: [
+                        "On aligne 350 et on multiplie par 4$.",
+                        "Unités : 4 x 0 = 0.",
+                        "Dizaines : 4 x 5 = 20. J'écris 0 et je retiens 2 (centaines).",
+                        "Centaines : 4 x 3 = 12. Plus la retenue de 2 = 14. Résultat : 1 400 $."
+                    ]
+                };
+            }
+            // 2B. Multiplication Activité Jus (350 x 2)
+            else if (operationId === "mult_act_b") {
+                config = {
+                    title: "Coût Activité Jus (350 x 2$)",
+                    maxSteps: 3,
+                    width: 450,
+                    height: 280,
+                    headers: [
+                        { label: "C", color: "#1e40af", x: 170 },
+                        { label: "D", color: "#166534", x: 250 },
+                        { label: "U", color: "#9a3412", x: 330 }
+                    ],
+                    lines: [
+                        { y: 70 },
+                        { y: 120, vals: [{v:'3', x:170}, {v:'5', x:250}, {v:'0', x:330}] },
+                        { y: 170, sign: 'x', vals: [{v:'2', x:330}] },
+                    ],
+                    resultY: 230,
+                    renderDynamic: (step) => (
+                        <g>
+                            {step >= 1 && <rect x="290" y="80" width="80" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            {step >= 2 && <rect x="210" y="80" width="80" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            {step >= 3 && <rect x="130" y="80" width="80" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            
+                            {step >= 2 && <text x="170" y="70" textAnchor="middle" fill="#ef4444" fontSize="22" fontWeight="bold" className="animate-pop">1</text>}
+                            
+                            {step >= 1 && <text x="330" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">0</text>}
+                            {step >= 2 && <text x="250" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">0</text>}
+                            {step >= 3 && <text x="170" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">7</text>}
+                        </g>
+                    ),
+                    explanations: [
+                        "On multiplie 350 élèves par 2$.",
+                        "Unités : 2 x 0 = 0.",
+                        "Dizaines : 2 x 5 = 10. J'écris 0, je retiens 1 aux centaines.",
+                        "Centaines : 2 x 3 = 6. Plus retenue de 1 = 7. Résultat : 700 $."
+                    ]
+                };
+            }
+            // 2C. Addition des coûts Option B (1400 + 700)
+            else if (operationId === "add_choix_b") {
+                config = {
+                    title: "Total Repas B + Jus (1400 + 700)",
+                    maxSteps: 4,
+                    width: 450,
+                    height: 280,
+                    headers: [
+                        { label: "UM", color: "#6b21a8", x: 90 },
+                        { label: "C", color: "#1e40af", x: 170 },
+                        { label: "D", color: "#166534", x: 250 },
+                        { label: "U", color: "#9a3412", x: 330 }
+                    ],
+                    lines: [
+                        { y: 70 },
+                        { y: 120, vals: [{v:'1', x:90}, {v:'4', x:170}, {v:'0', x:250}, {v:'0', x:330}] },
+                        { y: 170, sign: '+', vals: [{v:'7', x:170}, {v:'0', x:250}, {v:'0', x:330}] },
+                    ],
+                    resultY: 230,
+                    renderDynamic: (step) => (
+                        <g>
+                            {step >= 1 && <rect x="290" y="80" width="80" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            {step >= 2 && <rect x="210" y="80" width="80" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            {step >= 3 && <rect x="130" y="80" width="80" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            {step >= 4 && <rect x="50" y="80" width="80" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            
+                            {step >= 3 && <text x="90" y="70" textAnchor="middle" fill="#ef4444" fontSize="22" fontWeight="bold" className="animate-pop">1</text>}
+                            
+                            {step >= 1 && <text x="330" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">0</text>}
+                            {step >= 2 && <text x="250" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">0</text>}
+                            {step >= 3 && <text x="170" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">1</text>}
+                            {step >= 4 && <text x="90" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">2</text>}
+                        </g>
+                    ),
+                    explanations: [
+                        "Addition des coûts : 1400$ (Repas) + 700$ (Jus).",
+                        "Unités : 0 + 0 = 0.",
+                        "Dizaines : 0 + 0 = 0.",
+                        "Centaines : 4 + 7 = 11. J'écris 1, je retiens 1 aux UM.",
+                        "Unités de mille : 1 + 0 + 1 = 2. Total partiel : 2 100 $."
+                    ]
+                };
+            }
+            // 2D. Soustraction du budget restant
+            else if (operationId === "sub_reste_budget") {
+                config = {
+                    title: "Soustraction : Budget restant",
+                    maxSteps: 4,
+                    width: 450,
+                    height: 280,
+                    headers: [
+                        { label: "UM", color: "#6b21a8", x: 90 },
+                        { label: "C", color: "#1e40af", x: 170 },
+                        { label: "D", color: "#166534", x: 250 },
+                        { label: "U", color: "#9a3412", x: 330 }
+                    ],
+                    lines: [
+                        { y: 70 },
+                        { y: 120, vals: [{v:'2', x:90}, {v:'4', x:170}, {v:'6', x:250}, {v:'0', x:330}] },
+                        { y: 170, sign: '-', vals: [{v:'2', x:90}, {v:'1', x:170}, {v:'0', x:250}, {v:'0', x:330}] },
+                    ],
+                    resultY: 230,
+                    renderDynamic: (step) => (
+                        <g>
+                            {step >= 1 && <rect x="290" y="80" width="80" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            {step >= 2 && <rect x="210" y="80" width="80" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            {step >= 3 && <rect x="130" y="80" width="80" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            {step >= 4 && <rect x="50" y="80" width="80" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            
+                            {step >= 1 && <text x="330" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">0</text>}
+                            {step >= 2 && <text x="250" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">6</text>}
+                            {step >= 3 && <text x="170" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">3</text>}
+                            {step >= 4 && <text x="90" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">0</text>}
+                        </g>
+                    ),
+                    explanations: [
+                        "On vérifie ce qu'il reste sur les 2460$ initiaux.",
+                        "Unités : 0 - 0 = 0.",
+                        "Dizaines : 6 - 0 = 6.",
+                        "Centaines : 4 - 1 = 3.",
+                        "Unités de mille : 2 - 2 = 0. Il restera 360 $ pour les pommes."
+                    ]
+                };
+            }
+            // 3A. Multiplication Petits sacs (123 x 3)
+            else if (operationId === "mult_petits_sacs") {
+                config = {
+                    title: "Multiplication : Petits sacs (123 x 3$)",
+                    maxSteps: 3,
+                    width: 400,
+                    height: 280,
+                    headers: [
+                        { label: "C", color: "#1e40af", x: 100 },
+                        { label: "D", color: "#166534", x: 200 },
+                        { label: "U", color: "#9a3412", x: 300 }
+                    ],
+                    lines: [
+                        { y: 70 },
+                        { y: 120, vals: [{v:'1', x:100}, {v:'2', x:200}, {v:'3', x:300}] },
+                        { y: 170, sign: 'x', vals: [{v:'3', x:300}] },
+                    ],
+                    resultY: 230,
+                    renderDynamic: (step) => (
+                        <g>
+                            {step >= 1 && <rect x="250" y="80" width="100" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            {step >= 2 && <rect x="150" y="80" width="100" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            {step >= 3 && <rect x="50" y="80" width="100" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            
+                            {step >= 1 && <text x="300" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">9</text>}
+                            {step >= 2 && <text x="200" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">6</text>}
+                            {step >= 3 && <text x="100" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">3</text>}
+                        </g>
+                    ),
+                    explanations: [
+                        "123 élèves du Groupe 2 multipliés par 3$.",
+                        "Unités : 3 x 3 = 9.",
+                        "Dizaines : 3 x 2 = 6.",
+                        "Centaines : 3 x 1 = 3. Prix avant rabais : 369 $."
+                    ]
+                };
+            }
+            // 3B. Soustraction Rabais Petits Sacs (369 - 20)
+            else if (operationId === "sub_rabais_petits") {
+                config = {
+                    title: "Soustraction : Rabais de 20$ (Petits sacs)",
+                    maxSteps: 3,
+                    width: 400,
+                    height: 280,
+                    headers: [
+                        { label: "C", color: "#1e40af", x: 100 },
+                        { label: "D", color: "#166534", x: 200 },
+                        { label: "U", color: "#9a3412", x: 300 }
+                    ],
+                    lines: [
+                        { y: 70 },
+                        { y: 120, vals: [{v:'3', x:100}, {v:'6', x:200}, {v:'9', x:300}] },
+                        { y: 170, sign: '-', vals: [{v:'2', x:200}, {v:'0', x:300}] },
+                    ],
+                    resultY: 230,
+                    renderDynamic: (step) => (
+                        <g>
+                            {step >= 1 && <rect x="250" y="80" width="100" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            {step >= 2 && <rect x="150" y="80" width="100" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            {step >= 3 && <rect x="50" y="80" width="100" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                            
+                            {step >= 1 && <text x="300" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">9</text>}
+                            {step >= 2 && <text x="200" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">4</text>}
+                            {step >= 3 && <text x="100" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">3</text>}
+                        </g>
+                    ),
+                    explanations: [
+                        "On applique le rabais de 20$ sur le prix de 369$.",
+                        "Unités : 9 - 0 = 9.",
+                        "Dizaines : 6 - 2 = 4.",
+                        "Centaines : 3 - 0 = 3. Le coût final est de 349 $."
+                    ]
+                };
+            }
+            // 3. La soustraction avec emprunt (Grands sacs : 492 - 45)
+            else if (operationId === "sub_sacs") {
+                config = {
+                    title: "La soustraction avec emprunt (Grands sacs)",
+                    maxSteps: 5,
+                    width: 400,
+                    height: 280,
+                    headers: [
+                        { label: "C", color: "#1e40af", x: 100 },
+                        { label: "D", color: "#166534", x: 200 },
+                        { label: "U", color: "#9a3412", x: 300 }
+                    ],
+                    lines: [
+                        { y: 70 }, 
+                        { y: 120, vals: [{v:'4', x:100}, {v:'9', x:200}, {v:'2', x:300}] },
+                        { y: 170, sign: '-', vals: [{v:'4', x:200}, {v:'5', x:300}] },
+                    ],
+                    resultY: 230,
+                    renderDynamic: (step) => {
+                        return (
+                            <g>
+                                {/* Surlignement colonnes */}
+                                {(step >= 1 && step <= 3) && <rect x="250" y="80" width="100" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                                {step === 4 && <rect x="150" y="80" width="100" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                                {step === 5 && <rect x="50" y="80" width="100" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                                
+                                {/* Animation de l'emprunt (barrer et ajouter les petits chiffres) */}
+                                {step >= 2 && (
+                                    <g className="animate-pop">
+                                        <line x1="185" y1="125" x2="215" y2="105" stroke="#ef4444" strokeWidth="3" />
+                                        <text x="200" y="90" textAnchor="middle" fill="#ef4444" fontSize="22" fontWeight="bold">8</text>
+                                        <text x="280" y="120" textAnchor="middle" fill="#ef4444" fontSize="20" fontWeight="bold">1</text>
+                                    </g>
+                                )}
+                                
+                                {/* Résultat bas */}
+                                {step >= 3 && <text x="300" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">7</text>}
+                                {step >= 4 && <text x="200" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">4</text>}
+                                {step >= 5 && <text x="100" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">4</text>}
+                            </g>
+                        )
+                    },
+                    explanations: [
+                        "On aligne pour soustraire 45 de 492.",
+                        "Unités : 2 - 5. Impossible ! Il faut emprunter.",
+                        "Emprunt : On prend 1 dizaine au 9 (il devient 8). Le 2 devient 12.",
+                        "Unités : 12 - 5 = 7.",
+                        "Dizaines : 8 - 4 = 4.",
+                        "Centaines : 4 - 0 = 4. Total : 447 $."
+                    ]
+                };
+            } 
+            // 3. Soustraction finale (budget) avec emprunt complexe
+            else if (operationId === "sub_budget") {
+                config = {
+                    title: "Vérification du budget restant (Emprunt)",
+                    maxSteps: 4,
+                    width: 450,
+                    height: 280,
+                    headers: [
+                        { label: "UM", color: "#6b21a8", x: 90 },
+                        { label: "C", color: "#1e40af", x: 170 },
+                        { label: "D", color: "#166534", x: 250 },
+                        { label: "U", color: "#9a3412", x: 330 }
+                    ],
+                    lines: [
+                        { y: 70 }, 
+                        { y: 120, vals: [{v:'2', x:90}, {v:'4', x:170}, {v:'6', x:250}, {v:'0', x:330}] },
+                        { y: 170, sign: '-', vals: [{v:'2', x:90}, {v:'4', x:170}, {v:'4', x:250}, {v:'9', x:330}] },
+                    ],
+                    resultY: 230,
+                    renderDynamic: (step) => {
+                        return (
+                            <g>
+                                {(step >= 1 && step <= 3) && <rect x="290" y="80" width="80" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                                {step === 4 && <rect x="50" y="80" width="240" height="160" fill="rgba(253, 224, 71, 0.3)" rx="10" />}
+                                
+                                {step >= 2 && (
+                                    <g className="animate-pop">
+                                        <line x1="235" y1="125" x2="265" y2="105" stroke="#ef4444" strokeWidth="3" />
+                                        <text x="250" y="90" textAnchor="middle" fill="#ef4444" fontSize="22" fontWeight="bold">5</text>
+                                        <text x="310" y="120" textAnchor="middle" fill="#ef4444" fontSize="20" fontWeight="bold">1</text>
+                                    </g>
+                                )}
+                                
+                                {step >= 3 && <text x="330" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">1</text>}
+                                {step >= 4 && (
+                                    <>
+                                        <text x="250" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">1</text>
+                                        <text x="170" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">0</text>
+                                        <text x="90" y="230" textAnchor="middle" fill="#b91c1c" fontSize="28" fontWeight="bold" className="animate-pop">0</text>
+                                    </>
+                                )}
+                            </g>
+                        )
+                    },
+                    explanations: [
+                        "2460 $ (Budget) - 2449 $ (Dépenses)",
+                        "Unités : 0 - 9. Impossible ! On doit emprunter.",
+                        "Emprunt : On prend 1 dizaine au 6 (devient 5). Le 0 devient 10.",
+                        "Unités : 10 - 9 = 1.",
+                        "Le reste : 5-4=1, 4-4=0, 2-2=0. Il reste 11 $ !"
+                    ]
+                };
+            }
+            
+            if (!config.title) return null;
+
+            return (
+                <div className="w-full bg-white rounded-2xl border-4 border-blue-300 p-4 md:p-6 my-6 flex flex-col items-center box-shadow-custom relative overflow-hidden">
+                    <h4 className="font-black text-xl md:text-2xl text-blue-800 mb-6 flex items-center gap-3">
+                        <span>🧮</span> {config.title}
+                    </h4>
+                    <div className="flex flex-col items-center w-full max-w-lg">
+                        <svg viewBox={`0 0 ${config.width} ${config.height}`} className="w-full bg-blue-50 rounded-xl shadow-inner border border-blue-100">
+                            {config.headers.map((h, i) => (
+                                <text key={i} x={h.x} y="45" textAnchor="middle" fill={h.color} fontWeight="black" fontSize="20">{h.label}</text>
+                            ))}
+                            
+                            <line x1="20" y1="60" x2={config.width - 20} y2="60" stroke="#93c5fd" strokeWidth="2" strokeDasharray="5,5" />
+                            <line x1="20" y1={config.resultY - 35} x2={config.width - 20} y2={config.resultY - 35} stroke="#1e3a8a" strokeWidth="4" />
+                            
+                            {config.lines.map((line, i) => (
+                                <g key={i}>
+                                    {line.sign && <text x="40" y={line.y} textAnchor="middle" fill="#1e3a8a" fontSize="30" fontWeight="bold">{line.sign}</text>}
+                                    {line.vals && line.vals.map((v, j) => (
+                                        <text key={j} x={v.x} y={line.y} textAnchor="middle" fill="#1e3a8a" fontSize="30" fontWeight="bold">{v.v}</text>
+                                    ))}
+                                </g>
+                            ))}
+                            
+                            {config.renderDynamic(step)}
+                        </svg>
+                        
+                        <div className="w-full mt-6 bg-blue-100 p-4 md:p-5 rounded-xl border-2 border-blue-200">
+                            <div className="flex justify-between items-center mb-4">
+                                <button 
+                                    onClick={() => setStep(Math.max(0, step - 1))}
+                                    disabled={step === 0}
+                                    className={`px-4 py-2 md:px-5 md:py-3 rounded-xl font-bold text-lg transition-all ${step === 0 ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50' : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105 shadow-md'}`}
+                                >
+                                    ⬅️
+                                </button>
+                                <span className="font-black text-lg md:text-xl text-blue-900 bg-white px-3 md:px-4 py-2 rounded-lg shadow-sm border border-blue-200 text-center">
+                                    Étape {step} / {config.maxSteps}
+                                </span>
+                                <button 
+                                    onClick={() => setStep(Math.min(config.maxSteps, step + 1))}
+                                    disabled={step === config.maxSteps}
+                                    className={`px-4 py-2 md:px-5 md:py-3 rounded-xl font-bold text-lg transition-all ${step === config.maxSteps ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50' : 'bg-green-500 text-white hover:bg-green-600 hover:scale-105 shadow-md animate-pulse'}`}
+                                >
+                                    {step === config.maxSteps ? '✅' : '➡️'}
+                                </button>
+                            </div>
+                            <p className="text-lg md:text-xl font-bold text-center text-blue-900 min-h-[60px] md:min-h-[70px] flex items-center justify-center bg-white rounded-lg p-3 shadow-sm border border-blue-100">
+                                {config.explanations[step]}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const BudgetVisual = ({ current, max, label }) => {
+            const percentage = Math.min(100, (current / max) * 100);
+            const isOverBudget = current > max;
+            
+            return (
+                <div className="w-full mt-4">
+                    <div className="flex justify-between mb-1">
+                        <span className="text-base font-medium text-gray-700">{label}</span>
+                        <span className={`text-base font-bold ${isOverBudget ? 'text-red-600' : 'text-green-600'}`}>
+                            {current} $ / {max} $
+                        </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-6 border-2 border-gray-300 overflow-hidden relative">
+                        <div 
+                            className={`h-6 transition-all duration-1000 ease-out ${isOverBudget ? 'bg-red-500' : 'bg-green-500'}`} 
+                            style={{ width: `${percentage}%` }}
+                        ></div>
+                        {isOverBudget && (
+                            <div className="absolute top-0 right-0 h-6 bg-red-800 opacity-50" style={{ width: `${((current-max)/current)*100}%`}}></div>
+                        )}
+                    </div>
+                    {isOverBudget && <p className="text-red-600 font-bold text-sm mt-1 animate-pulse">⚠️ Budget dépassé !</p>}
+                </div>
+            );
+        };
+
+        const TeacherTip = ({ text }) => (
+            <div className="bg-amber-100 border-l-8 border-amber-400 p-4 my-4 rounded-r-xl shadow-sm flex items-start space-x-3 transform transition hover:-translate-y-1 hover:shadow-md">
+                <div className="text-3xl">💡</div>
+                <div>
+                    <h5 className="font-bold text-amber-800 text-lg">Astuce de prof</h5>
+                    <p className="text-amber-900 font-medium text-lg leading-snug">{text}</p>
+                </div>
+            </div>
+        );
+
+        const StepBox = ({ stepNumber, title, buttonText, icon, children, onReveal }) => {
+            const [isRevealed, setIsRevealed] = useState(false);
+
+            const handleReveal = () => {
+                setIsRevealed(true);
+                if (onReveal) onReveal();
+            };
+
+            return (
+                <div className="bg-white rounded-3xl p-6 mb-8 border-4 border-apple-dark box-shadow-custom relative overflow-hidden">
+                    {/* Badge de l'étape */}
+                    <div className="absolute -top-1 -left-1 bg-apple-dark text-white font-black text-xl py-2 px-6 rounded-br-2xl rounded-tl-2xl shadow-md">
+                        Étape {stepNumber}
+                    </div>
+                    
+                    <h2 className="text-3xl font-black text-wood-brown text-center mt-6 mb-4 flex items-center justify-center space-x-3">
+                        <span className="text-4xl">{icon}</span>
+                        <span>{title}</span>
+                    </h2>
+                    
+                    {!isRevealed ? (
+                        <div className="flex justify-center my-8">
+                            <button 
+                                onClick={handleReveal}
+                                className="bg-gradient-to-b from-leaf-green to-green-600 hover:from-green-500 hover:to-green-700 text-white font-black text-2xl py-4 px-8 rounded-full shadow-lg transform transition hover:scale-105 active:scale-95 flex items-center space-x-3 animate-float border-4 border-white"
+                            >
+                                <span>❓</span>
+                                <span>{buttonText}</span>
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="animate-pop border-t-4 border-dashed border-gray-200 pt-6 mt-4">
+                            {children}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const App = () => {
+            
+            const triggerConfetti = () => {
+                const duration = 3 * 1000;
+                const animationEnd = Date.now() + duration;
+                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+                const randomInRange = (min, max) => Math.random() * (max - min) + min;
+
+                const interval = setInterval(function() {
+                    const timeLeft = animationEnd - Date.now();
+
+                    if (timeLeft <= 0) {
+                        return clearInterval(interval);
+                    }
+
+                    const particleCount = 50 * (timeLeft / duration);
+                    confetti(Object.assign({}, defaults, { particleCount,
+                        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+                    }));
+                    confetti(Object.assign({}, defaults, { particleCount,
+                        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+                    }));
+                }, 250);
+            };
+
+            return (
+                <div className="max-w-5xl mx-auto p-4 md:p-8">
+                    {/* En-tête */}
+                    <header className="text-center mb-12 animate-pop">
+                        <div className="inline-block bg-white py-2 px-6 rounded-full text-wood-brown font-bold text-xl mb-4 border-2 border-wood-brown box-shadow-custom">
+                            🏫 École : [INSÉRER NOM DE L'ÉCOLE]
+                        </div>
+                        <h1 className="text-5xl md:text-6xl font-black text-white title-shadow uppercase tracking-wider">
+                            🍎 La grande cueillette 🍎
+                        </h1>
+                        <h2 className="text-2xl md:text-3xl font-bold text-wood-brown mt-4">
+                            Corrigé interactif de la situation-problème
+                        </h2>
+                    </header>
+
+                    {/* Zone de contenu interactif */}
+                    <div className="space-y-8">
+
+                        {}
+                        <StepBox 
+                            stepNumber="1" 
+                            title="Calculer le nombre total d'élèves" 
+                            icon="🧑‍🤝‍🧑" 
+                            buttonText="Découvrir le nombre d'élèves"
+                        >
+                            <div className="space-y-4 text-xl">
+                                <p className="font-bold text-gray-700">Commençons par transformer les dizaines et unités de chaque groupe :</p>
+                                
+                                <ul className="bg-wood-light p-6 rounded-xl space-y-4 border-2 border-amber-200">
+                                    <li className="flex items-center space-x-2">
+                                        <span className="bg-blue-500 text-white font-bold py-1 px-3 rounded-lg">Groupe 1</span>
+                                        <span>12 dizaines et 5 unités &nbsp;➔&nbsp; <strong className="text-2xl">125</strong></span>
+                                    </li>
+                                    <li className="flex items-center space-x-2">
+                                        <span className="bg-green-500 text-white font-bold py-1 px-3 rounded-lg">Groupe 2</span>
+                                        <span>11 dizaines et 13 unités &nbsp;➔&nbsp; 110 + 13 = <strong className="text-2xl">123</strong></span>
+                                    </li>
+                                    <li className="flex items-center space-x-2">
+                                        <span className="bg-orange-500 text-white font-bold py-1 px-3 rounded-lg">Groupe 3</span>
+                                        <span>10 dizaines et 2 unités &nbsp;➔&nbsp; 100 + 2 = <strong className="text-2xl">102</strong></span>
+                                    </li>
+                                </ul>
+
+                                {}
+                                <ColumnMath operationId="add_eleves" />
+
+                                <div className="text-center mt-6 p-4 bg-gray-100 rounded-xl border-l-8 border-apple-red">
+                                    <p className="text-2xl font-bold">Total : 125 + 123 + 102 = <span className="text-apple-red text-4xl">350</span> élèves au total.</p>
+                                </div>
+
+                                <TeacherTip text="Attention aux retenues cachées ! Dans le groupe 2, '13 unités' nous donne une dizaine de plus, c'est pour ça que 11 dizaines et 13 unités devient 123." />
+                            </div>
+                        </StepBox>
+
+                        {}
+                        <StepBox 
+                            stepNumber="2" 
+                            title="Choisir le repas et l'activité (Respect du budget)" 
+                            icon="🥪" 
+                            buttonText="Tester les combinaisons possibles"
+                        >
+                            <div className="space-y-6 text-xl">
+                                <p className="font-bold text-gray-700">Rappel du budget : <span className="text-green-600 font-black text-2xl">2 460 $</span>. Testons les choix pour nos 350 élèves.</p>
+                                
+                                {/* Option A Rejetée */}
+                                <div className="bg-red-50 border-4 border-red-300 rounded-2xl p-6 relative opacity-80">
+                                    <div className="absolute -top-4 left-4 bg-red-500 text-white px-4 py-1 font-bold rounded-full">Essai #1</div>
+                                    <h4 className="font-black text-xl mb-2 mt-2">Repas A + Activité Tartes</h4>
+                                    <p className="text-sm italic mb-4">Contrainte : Si on prend le repas A, on DOIT prendre l'activité Tartes aux pommes.</p>
+                                    <ul className="space-y-2 mb-4">
+                                        <li>Repas A (3$) : 350 x 3 = 1 050 $</li>
+                                        <li>Tartes (5$) : 350 x 5 = 1 750 $</li>
+                                        <li className="font-bold border-t-2 pt-2 text-red-600 text-2xl">Coût = 2 800 $</li>
+                                    </ul>
+                                    <div className="mt-2 text-center bg-red-200 text-red-800 font-bold p-2 rounded-lg">
+                                        Rejeté ! 2 800 $ &gt; 2 460 $
+                                    </div>
+                                </div>
+
+                                {/* Option B - Calculs détaillés */}
+                                <div className="bg-green-50 border-4 border-green-400 rounded-2xl p-6 relative shadow-lg transform scale-105 mt-8">
+                                    <div className="absolute -top-4 left-4 bg-green-500 text-white px-4 py-1 font-bold rounded-full">Le bon choix !</div>
+                                    <h4 className="font-black text-xl mb-4 mt-2">Repas B + Activité Jus</h4>
+                                    <p className="text-sm italic mb-4 text-gray-600">On choisit l'activité la moins chère. Calculons le coût exact pour nos 350 élèves :</p>
+                                    
+                                    <div className="grid md:grid-cols-2 gap-4 mb-6">
+                                        <ColumnMath operationId="mult_repas_b" />
+                                        <ColumnMath operationId="mult_act_b" />
+                                    </div>
+                                    
+                                    <div className="mb-6">
+                                        <ColumnMath operationId="add_choix_b" />
+                                    </div>
+                                    
+                                    <BudgetVisual current={2100} max={2460} label="Coût du choix retenu" />
+                                    <div className="mt-4 text-center bg-green-200 text-green-800 font-bold p-2 rounded-lg">
+                                        Accepté ! 2 100 $ &lt; 2 460 $
+                                    </div>
+                                </div>
+
+                                <div className="bg-blue-50 p-6 rounded-xl border-4 border-blue-300 mt-8">
+                                    <h4 className="font-bold text-xl mb-4 text-blue-800">Calcul du budget restant pour les pommes :</h4>
+                                    <ColumnMath operationId="sub_reste_budget" />
+                                </div>
+
+                                <TeacherTip text="La stratégie d'essais et erreurs est parfaite ici ! Il faut toujours modéliser le calcul en colonnes complet de l'option gagnante pour prouver ton raisonnement." />
+                            </div>
+                        </StepBox>
+
+                        {}
+                        <StepBox 
+                            stepNumber="3" 
+                            title="Acheter les sacs de pommes" 
+                            icon="🧺" 
+                            buttonText="Calculer pour le groupe 2"
+                        >
+                            <div className="space-y-6 text-xl">
+                                <div className="bg-yellow-100 p-4 rounded-xl border-l-8 border-yellow-400">
+                                    <p className="font-bold">Attention à la contrainte : Les sacs sont achetés <span className="underline uppercase">seulement pour le groupe 2</span>.</p>
+                                    <p className="mt-2 text-2xl">Quantité nécessaire : <strong className="text-red-600">123 sacs</strong>.</p>
+                                    <p className="mt-2 text-lg">Catégorie de rabais à utiliser (tableau) : <strong>100 à 149 sacs</strong>.</p>
+                                </div>
+
+                                <div className="mt-8">
+                                    {/* Option Petits Sacs */}
+                                    <div className="bg-white border-4 border-green-400 rounded-xl p-5 shadow-lg relative transform scale-105 mb-8">
+                                        <div className="absolute -top-4 right-4 bg-green-500 text-white px-4 py-1 font-bold rounded-full animate-pulse">Meilleur choix !</div>
+                                        <h4 className="font-bold text-xl mb-6 flex items-center"><span className="text-2xl mr-2">🍎</span> Option Petits sacs (3 lb)</h4>
+                                        
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            <ColumnMath operationId="mult_petits_sacs" />
+                                            <ColumnMath operationId="sub_rabais_petits" />
+                                        </div>
+                                        
+                                        <div className="mt-6 p-3 bg-green-100 text-green-800 rounded-lg text-center font-bold text-xl border-2 border-green-300">
+                                            Coût : 349 $ &lt; 360 $ restants (Budget OK) ✅
+                                        </div>
+                                    </div>
+
+                                    {/* Option Grands Sacs */}
+                                    <div className="bg-gray-50 border-2 border-gray-300 rounded-xl p-5 shadow-sm opacity-90">
+                                        <h4 className="font-bold text-lg mb-3 flex items-center"><span className="text-2xl mr-2">🍎🍎</span> Option Grands sacs (5 lb)</h4>
+                                        <p className="mb-4">Prix de base : 123 x 4$ = 492 $. (Rabais applicable de 45$)</p>
+                                        
+                                        {}
+                                        <ColumnMath operationId="sub_sacs" />
+                                        
+                                        <div className="mt-4 p-2 bg-red-100 text-red-800 rounded text-center font-bold">
+                                            Coût final : 447 $ &gt; 360 $ (Trop cher) 🚫
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="text-center p-4 bg-leaf-green text-white rounded-xl shadow-md text-2xl font-bold mt-6">
+                                    Choix final retenu : Les petits sacs (coût de 349 $).
+                                </div>
+
+                                <TeacherTip text="Il est très facile de se tromper et de multiplier par 350 élèves ! Prends toujours l'habitude de surligner les informations importantes dans le texte, comme 'aux élèves du deuxième groupe'." />
+                            </div>
+                        </StepBox>
+
+                        {}
+                        <StepBox 
+                            stepNumber="4" 
+                            title="Conclusion et Coût total de la sortie" 
+                            icon="🚌" 
+                            buttonText="Révéler la réponse finale !"
+                            onReveal={triggerConfetti}
+                        >
+                            <div className="space-y-6 text-xl">
+                                <p className="font-bold text-gray-700 text-center mb-6">Rassemblons toutes nos dépenses pour confirmer que l'organisation est parfaite :</p>
+                                
+                                <div className="bg-white border-4 border-apple-dark rounded-2xl overflow-hidden shadow-xl max-w-2xl mx-auto">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-apple-dark text-white">
+                                            <tr>
+                                                <th className="p-4 text-xl">Élément de la sortie</th>
+                                                <th className="p-4 text-xl text-right">Coût</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y-2 divide-gray-100 text-lg">
+                                            <tr className="hover:bg-gray-50">
+                                                <td className="p-4 font-bold text-gray-800">🥪 Repas (Choix B)</td>
+                                                <td className="p-4 text-right">1 400 $</td>
+                                            </tr>
+                                            <tr className="hover:bg-gray-50">
+                                                <td className="p-4 font-bold text-gray-800">🧃 Activité (Jus de pomme)</td>
+                                                <td className="p-4 text-right">700 $</td>
+                                            </tr>
+                                            <tr className="hover:bg-gray-50">
+                                                <td className="p-4 font-bold text-gray-800">🍎 Sacs de pommes (Petits, Gr. 2)</td>
+                                                <td className="p-4 text-right">349 $</td>
+                                            </tr>
+                                            <tr className="bg-amber-100">
+                                                <td className="p-4 font-black text-2xl text-wood-brown uppercase">Total</td>
+                                                <td className="p-4 font-black text-3xl text-apple-red text-right">2 449 $</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {}
+                                <div className="mt-8">
+                                    <ColumnMath operationId="sub_budget" />
+                                </div>
+
+                                <div className="mt-8 bg-gradient-to-r from-green-400 to-green-600 text-white p-6 rounded-2xl shadow-xl text-center transform scale-105 border-4 border-white">
+                                    <h3 className="text-4xl font-black mb-2 title-shadow">Bravo ! 🎉</h3>
+                                    <p className="text-2xl font-bold">Le coût total de la sortie est de 2 449 $.</p>
+                                    <p className="text-xl mt-2">Le budget alloué par le conseil d'école était de 2 460 $. Tout est respecté ! Il reste même 11 $.</p>
+                                </div>
+                            </div>
+                        </StepBox>
+
+                    </div>
+                    
+                    {/* Pied de page */}
+                    <footer className="text-center text-wood-brown font-bold mt-12 pb-8">
+                        <p>Fin de la correction. Beau travail les élèves !</p>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
